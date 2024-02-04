@@ -1,0 +1,127 @@
+---
+title: "Homework 2 Exploration"
+author: "Kristina Glass she/her"
+date: "`r Sys.Date()`"
+toc: true
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Part 2a
+
+## Load Libraries and Data
+
+```{r}
+#load libraries
+library(tidyverse)
+library(janitor)
+
+data <- read_csv(here::here("data", "global_witness_led_09-10-23.csv"))
+```
+
+## Data Cleaning and Wrangling
+
+```{r}
+# view data
+str(data)
+glimpse(data)
+```
+
+```{r}
+#Cleaning and wrangling
+
+clean_data <- data %>%
+  mutate(incident_date = ymd(date)) %>%  #turn date columnn into datetime object
+  mutate(year = year(incident_date)) %>%  #create year column from date column
+  mutate(month = month(incident_date))#create month column from date column
+  #as.numeric(as.character(country_numeric))
+
+clean_data[5][is.na(clean_data[5])] <- 0 #turn NAs in age column to 0
+clean_data[is.na(clean_data)] <- "Unknown" #turn NAs in all other columns to "Unknown"
+clean_data[5][clean_data[5] == 4145] <- 0
+```
+
+## Exploratory Visualizations
+
+### Gender and Industry
+
+```{r}
+# plot 1
+
+clean_data %>% 
+  ggplot(aes(x = gender, y = industry_driver)) +
+  geom_jitter()
+```
+
+```{r}
+# plot 2
+clean_data %>% 
+  ggplot(aes(x = industry_driver, fill = gender)) +
+  geom_bar() +
+  coord_flip()
+```
+
+```{r}
+# plot 3
+clean_data %>% 
+  ggplot(aes(x = gender, y = age)) +
+  geom_jitter()
+```
+
+```{r}
+# plot4
+#paracord plot
+#isFemale <- ifelse(clean_data$gender=="Female","firebrick","grey")
+
+#parcoord(clean_data[,c(5,11)] , col=isFemale  ) cannot transform country_numeric column to numeric
+```
+
+### Industry and Perpetrator 
+
+```{r}
+#plot 1
+clean_data %>% 
+  ggplot(aes(x = perpetrator_type, y = industry_driver, color = gender)) +
+  geom_jitter()
+```
+
+```{r}
+#plot 2
+clean_data %>% 
+  ggplot(aes(x = industry_driver, fill = perpetrator_type)) +
+  geom_bar() +
+  coord_flip()
+```
+
+### Year
+
+```{r}
+# plot 1
+clean_data %>% 
+  ggplot(aes(x = year, y = continent, color = country)) +
+  geom_area()
+```
+
+```{r}
+#plot 2
+clean_data %>% 
+  ggplot(aes(x = year, y = country)) +
+  geom_tile()
+```
+
+# Part 2b
+
+-   **1.** What have you learned about your data? Have any potentially interesting patterns emerged? **(5-8 sentences)**
+
+***I found it interesting how much of the data was unknown, either not recorded in in the dataset or recorded as unknown/unconfirmed/etc in the dataset. It makes sense since the data was collected and compiled from various news sources, NGO's, and other sources from multiple different languages, and its reasonable that some of that data would either be lost in translation or not recorded at all. I also found the gender distribution interesting, where I found that the majority of victims seem to be men. I'm unsure if this is due to the personal characteristics of the environmental defender, or if other social factors could be the cause, though. I also found it interesting that many identified perpetrators seem to be landowners. I'm curious to know if the landowners are corporate or if they're people unaffiliated with a business/corporation.***
+
+-   **2.** In HW #1, you outlined some questions that you wanted to answer using these data. Have you made any strides towards answering those questions? If yes, how so? If no, what next steps do you need to take (e.g. I need to create X plot type, I still need to track down Y data, I need to restructure existing data so that you can visualize it in Z ways, etc.)? **(8-12 sentences)**
+
+***I think I've made some strides in answering these questions of the relationships between gender and age, and industry and perpetrator type. Primarily in just understanding the if and where these relationships exist but not enough to draw any conclusions from the data. Since there's so much data my next steps will be determining if I should narrow down to a particular country, continent, or year to continue my exploration. Global Witness has annual reports for the dataset for each year so I'll go into the reports and read them to find what particular time or region im interested in exploring further. Once I have that narrowed down I think I'll be able to target my questions better.***
+
+***I also need to continue restructuring the data to visualize it in more ways that just bar and scatter plots. I attempted to try out one of the story telling plots listed in Data to Viz, but I was struggling to convert a column to numeric, which was needed to plot the data with that visualization. I also need to do more work in understanding how to deal with NA values. I turned unknown ages into 0 values, and all other characters to "Unknown", but I want to explore different ways of dealing with NAs in ages since theres so many of them.***
+
+-   **3.** What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges. **(4-6 sentences)**
+
+***One of my main chalanges I foresee encountering with this data is the visualization. I'm pretty unfamiliar with plotting categorical variables and the majority of the values in the dataset are categorical. I'll be looking into new libraries other than ggplot, or explore other geom_objects within ggplot to find whats best for ploting this data type. It'll also be challenging to wrangle the data and manipulate it in ways that'll help me create the visualizations that I want. That'll involve a lot of trial and error and more exploratory visualizations, but the process will likely be easier once i have more targeted questions I'm interested in exploring.***
