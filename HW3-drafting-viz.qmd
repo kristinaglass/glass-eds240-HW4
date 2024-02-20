@@ -1,0 +1,84 @@
+---
+title: "HW3-drafting-viz"
+format: html
+editor: visual
+---
+
+## Load in Data and Packages
+
+```{r}
+#load libraries
+library(tidyverse)
+library(janitor)
+
+data <- read_csv(here::here("data", "global_witness_led_09-10-23.csv"))
+```
+
+## Cleaning and Wrangling data
+
+```{r}
+#Cleaning and wrangling
+
+clean_data <- data %>%
+  mutate(incident_date = ymd(date)) %>%  #turn date columnn into datetime object
+  mutate(year = year(incident_date)) %>%  #create year column from date column
+  mutate(month = month(incident_date)) %>% #create month column from date column
+  filter(country == "Colombia") %>% #filter for Colombia
+  filter(year == 2019) #filter for the year 2019
+  clean_data <-clean_data[ -c(1,9:11) ] #remove id, continent, country, and country numeric column
+
+clean_data[4][is.na(clean_data[4])] <- 0 #turn NAs in age column to 0
+clean_data[is.na(clean_data)] <- "Unspecified" #turn NAs in all other columns to "Unknown"
+```
+
+## Prelim Data exploration
+
+```{r}
+# age and person characteristics
+
+clean_data %>% 
+  ggplot(aes(person_characteristics, age)) +
+  geom_jitter() + coord_flip()
+```
+
+```{r}
+#age and industry driver
+clean_data %>% 
+  ggplot(aes(industry_driver, age)) +
+  geom_jitter()
+```
+
+```{r}
+# gender and industry driver
+clean_data %>% 
+  ggplot(aes(industry_driver, gender)) +
+  geom_jitter()
+```
+
+```{r}
+# person characteristics and perpetrator type
+clean_data %>% 
+  ggplot(aes(person_characteristics, perpetrator_type)) +
+  geom_jitter() + coord_flip()
+```
+
+```{r}
+# local region and person characteristics
+clean_data %>% 
+  ggplot(aes(local_region, person_characteristics)) +
+  geom_jitter()
+```
+
+```{r}
+# age and person characteristics
+clean_data %>% 
+  ggplot(aes(person_characteristics, age)) +
+  geom_jitter()
+```
+
+```{r}
+# person characteristics and gender
+clean_data %>% 
+  ggplot(aes(person_characteristics, gender)) +
+  geom_jitter()
+```
