@@ -3,9 +3,9 @@ title: "Homework 2 Exploration"
 author: "Kristina Glass she/her"
 date: "`r Sys.Date()`"
 toc: true
-format: html
-editor_options: 
-  chunk_output_type: console
+format:
+  html:
+    embed-resources: true
 ---
 
 # Part 2a
@@ -77,7 +77,7 @@ clean_data %>%
 #parcoord(clean_data[,c(5,11)] , col=isFemale  ) cannot transform country_numeric column to numeric
 ```
 
-### Industry and Perpetrator 
+### Industry and Perpetrator
 
 ```{r}
 #plot 1

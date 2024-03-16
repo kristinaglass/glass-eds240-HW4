@@ -1,0 +1,220 @@
+---
+title: "Homework 3 Drafting Data Viz"
+author: "Kristina Glass she/her"
+date: "`r Sys.Date()`"
+toc: true
+format:
+  html:
+    embed-resources: true
+---
+
+# Questions
+
+### Which option do you plan to pursue?
+
+I plan to pursue option 1
+
+### Restate your question(s). Has this changed at all since HW #1? If yes, how so?
+
+What groups of environmental defenders are being killed on a larger scale than others and by whom?
+
+The initial questions I was interested in looking into were the victims age and gender, as well as the connections between the industry driver and the perpetrators of their deaths.
+
+### Explain which variables from your data set(s) you will use to answer your question(s).
+
+I will use person_characteristics, number_of_victims, and perpetrator_type
+
+# Visualization adaptations/inspiration
+
+1.   <https://www.globalwitness.org/en/campaigns/environmental-activists/numbers-lethal-attacks-against-defenders-2012/>
+
+From these graphs, I'd like to adapt the interactive element, being able to hover over the points and view the names/information of the victims
+
+1.  <https://github.com/Ijeamakaanyene/tidytuesday/blob/master/outputs/2020-17_plants_in_danger.png>
+
+From this graph, I want to look into borrowing how the creator lists each species labled by region in Africa, grouped by the years and apply that to representing the victims from my dataset
+
+# Hand Drawing
+
+```{r}
+#| eval: true
+#| echo: false
+#| fig-align: "center"
+#| out-width: "100%"
+#| fig-alt: "Alt text here"
+knitr::include_graphics("outputs/drawn_plots.jpg")
+```
+
+# Mock-ups
+
+## Load in Data and Packages
+
+```{r, message=FALSE, warning=FALSE}
+#load libraries
+library(tidyverse)
+library(janitor)
+library(highcharter)
+library(ggalluvial)
+library(viridis)
+library(fontawesome)
+library(stringr)
+data <- read_csv(here::here("data", "global_witness_led_09-10-23.csv"))
+```
+
+## Cleaning and Wrangling data
+
+```{r}
+#Cleaning and wrangling
+
+clean_data <- data %>%
+  mutate(incident_date = ymd(date)) %>%  #turn date columnn into datetime object
+  mutate(year = year(incident_date)) %>%  #create year column from date column
+  mutate(month = month(incident_date)) %>% #create month column from date column
+  filter(country == "Colombia") %>% #filter for Colombia
+  filter(year == 2019) #filter for the year 2019
+  clean_data <-clean_data[ -c(1,9:11) ] #remove id, continent, country, and country numeric column
+
+clean_data[4][is.na(clean_data[4])] <- 0 #turn NAs in age column to 0
+clean_data[is.na(clean_data)] <- "Unspecified" #turn NAs in all other columns to "Unknown"
+
+#year_group <- clean_data %>% 
+  #group_by(date)
+
+#count_group <- year_group %>% summarise(number_of_victims = n())
+```
+
+## General Audience Scatter Plot
+
+```{r}
+clean_data %>%  hchart('scatter', hcaes(x = date, y = age, #create interactive scatter plot
+                                        group = name, #group points by victim name
+                                        name = "name")) %>% #show victim name in pop up
+  hc_colors(c("#4b5320")) %>% #change point color
+  hc_legend(enabled = FALSE) %>%  #remove legend
+  hc_title(text = "Colombian Environmental and Land Defenders Lost to Violence in 2019") #add title
+
+```
+
+## Alluvial / Sankey Diagram
+
+```{r}
+
+ggplot(data = clean_data,
+       aes(axis1 = perpetrator_type, axis2 = person_characteristics)) + #plot by perpetrator type, leading to victim characteristics
+  geom_alluvium(aes(fill = person_characteristics), #fill links by person characteristics
+                curve_type = "quintic", size = 2) + #adjust curve type and curve size
+  geom_stratum(width = .4) + # adjust width of stratum/axis
+  geom_text(stat = "stratum", #adjust lets in stratum
+            aes(label = after_stat(stratum)), size = 1.7, check_overlap = TRUE) + #asjust labels on stratum
+  theme_void() + #remove background elements
+  theme(plot.title = element_text(family = "serif", face = "bold"), # adjust font of title
+        plot.subtitle = element_text(family = "serif"), #adjust font of subtitle
+        plot.caption = element_text(family = "serif", face = "italic"), #adjust font of captiom
+    legend.text = element_text(family = "serif"), #adjust font of legend components
+    legend.title = element_text(family = "serif"))+ #adjust font of legend title
+  labs(fill = "Victim Demographics", #change legend title
+       title = "Links between Demographic Information of Enviornmental \nDefenders and the Perpetrators of their Deaths", #add title to graph
+       subtitle = "Location: Colombia \nYear: 2019", #add subtitle to graph
+       caption = "Data Source: Global Witness", #add caption to graph
+       alt = "A Sankey Diagram displaying links between perpetrators responsible for the deaths of environmental defenders to the demographics of the victims") + #add alt text
+  scale_fill_viridis_d() #change color palette
+```
+
+```{r}
+ggplot(data = clean_data,
+       aes(axis1 = perpetrator_type, axis2 = person_characteristics)) + #plot by perpetrator type, leading to victim characteristics
+  geom_alluvium(aes(fill = person_characteristics), #fill links by person characteristics
+                curve_type = "quintic", width = .7) + #adjust curve type and curve size
+  geom_stratum(width = .4) + # adjust width of stratum/axis
+  geom_text(stat = "stratum", #adjust lets in stratum
+            aes(label = after_stat(stratum)), size = 1.7, check_overlap = TRUE) + #asjust labels on stratum
+  scale_x_discrete(limits = c("perpetrator_type", "person_characteristics"), #set stratum limits
+                   expand = c(.20, .10)) + #set stratm boundaries
+  theme_void() + #remove background elements
+  theme(plot.title = element_text(family = "serif", face = "bold"), # adjust font of title
+        plot.subtitle = element_text(family = "serif"), #adjust font of subtitle
+        plot.caption = element_text(family = "serif", face = "italic"), #adjust font of captiom
+    legend.text = element_text(family = "serif"), #adjust font of legend components
+    legend.title = element_text(family = "serif"))+ #adjust font of legend title
+  labs(fill = "Victim Demographics", #change legend title
+       title = "Links between Demographic Information of Enviornmental \nDefenders and the Perpetrators of their Deaths", #add title to graph
+       subtitle = "Location: Colombia \nYear: 2019", #add subtitle to graph
+       caption = "Data Source: Global Witness", #add caption to graph
+       alt = "A Sankey Diagram displaying links between perpetrators responsible for the deaths of environmental defenders to the demographics of the victims") + #add alt text
+  scale_fill_viridis_d() #change color palette
+```
+
+## Presentation Bar Plot
+
+```{r}
+reorder_clean <- clean_data%>% 
+  mutate(person_characteristics = fct_relevel(person_characteristics)) #reorder person_characteristic variable to factors from character
+```
+
+```{r}
+reorder_clean %>% 
+  ggplot(aes(person_characteristics, fill = perpetrator_type)) + #plot person characteristics filed by perpetrator type
+  coord_flip() + #flip axis
+  geom_bar(col = "black", position = "dodge") + labs (x = "Victim Demographics") + #add black borders, stack bars next to eachother, change legend title
+  theme_minimal() + #remove some background elements
+  theme(plot.title = element_text(family = "serif", face = "bold"), #adjust plot title
+        plot.subtitle = element_text(family = "serif"), #adjust plot subtitle
+        plot.caption = element_text(family = "serif", face = "italic"), #adjust caption
+        axis.ticks = element_blank(), #remove axis ticks
+        panel.grid.major = element_blank(),  #remove major grid lines
+        panel.grid.minor = element_blank(), #remove minor gridlines
+    legend.text = element_text(family = "serif"), #adjust legend text
+    axis.title = element_text(family = "serif"), #adjust axis title
+    axis.text = element_text(family = "serif"), #adjust axis text
+    legend.title = element_text(family = "serif")) + #adjust legend title
+  labs(fill = "Violent Offender", #add legend title
+       title = "Counts of Environmental Defeders by the \nPerpetrators of their Deaths", #add plot tile
+       subtitle = "Location: Colombia, Year: 2019", #add plot subtitle
+       caption = "Data Source: Global Witness", #add plot caption
+       alt = "A dodged bar chart displaying counts of environmental defenders by the perpetrators of their deaths") + #add alt text
+  scale_fill_viridis_d() #change color palette
+```
+
+```{r}
+clean_data %>% 
+  ggplot(aes(person_characteristics, fill = perpetrator_type)) + #plot person characteristics filed by perpetrator type
+  coord_flip() + #flip axis
+  geom_bar(col = "black") + labs (x = "Victim Demographics") + #add black borders, stack bars next to eachother, change legend title
+  theme_minimal() + #remove some background elements
+  theme(plot.title = element_text(family = "serif", face = "bold"), #adjust plot title
+        plot.subtitle = element_text(family = "serif"), #adjust plot subtitle
+        plot.caption = element_text(family = "serif", face = "italic"), #adjust caption
+        axis.ticks = element_blank(), #remove axis ticks
+        panel.grid.major = element_blank(),  #remove major grid lines
+        panel.grid.minor = element_blank(), #remove minor gridlines
+    legend.text = element_text(family = "serif"), #adjust legend text
+    axis.title = element_text(family = "serif"), #adjust axis title
+    axis.text = element_text(family = "serif"), #adjust axis text
+    legend.title = element_text(family = "serif")) + #adjust legend title
+  labs(fill = "Violent Offender", #add legend title
+       title = "Counts of Environmental Defeders by the \nPerpetrators of their Deaths", #add plot tile
+       subtitle = "Location: Colombia, Year: 2019", #add plot subtitle
+       caption = "Data Source: Global Witness", #add plot caption
+       alt = "A dodged bar chart displaying counts of environmental defenders by the perpetrators of their deaths") + #add alt text
+  scale_fill_viridis_d() #change color palette
+```
+
+# Questions
+
+### What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R?
+
+My biggest challenge was in understanding how to deal with total counts of victims and how to represent each individual as a data point in my first visualization. An interactive scatter plot was the best idea I had to display that, but due to how the data is structured, plotting this led to issues that would either obscure/remove victims entirely or misrepresent certain characteristics, like age. In the first graph, I used age as my Y variable, but due to the nature of the data, many victims ages were unknown and left as NA values. To allow these people to still be represented, I changed it to a 0 value, but that's not a metric I'd like to represent the victims with for my final graph.
+
+I also had trouble with plotting the sankey diagram and figuring out scaling so the text/labels don't flow over the borders/ the text isn't too small to fit in the squares.
+
+A challenge i anticipate encountering as I build on this is finding the right balance between making an informative and visually appealing graph while also maintaining respect for the people who's data I'm using
+
+For the barchart, I also struggled with rordering the factor levels of the bars, even after modifying the data to a factor from a character.
+
+### What ggplot extension tools / packages do you need to use to build your
+
+ggalluvial and highcharter are two packages I'll be using that we haven't covered in class
+
+### What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
+
+I'd like feedback on how to create an emotional impact with the visualizations. I'd also like feedback on the clarity of the variables I'm using and if more information is needed to understand the context behind my question/the dataset itself. Based on feedback I got from Sam, I'll be looking into making a visualization similar to the "Plants in Danger" chart seen in week 8 lecture
