@@ -1,0 +1,371 @@
+---
+title: "Homework 4 Final Data Viz"
+author: "Kristina Glass she/her"
+date: "`r Sys.Date()`"
+toc: true
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Design and Decision Process
+
+While my sub-questions have changed throughout the course of working on this project, my overall question: *"Who are these environmental defenders as people"* remained the same. To answer this, I wanted to explore who they were both in their name, their personal background, and the circumstances surrounding their death. This exploration led to the sub-questions of *"What are the links between environmental defenders and the perpetrators of their deaths?"* and *"Out of the total number of victims, what person demographics experience violent attacks the most/ who are the primary organizations carrying out these attacks?"*. Using data sourced from [Global Witness](https://www.globalwitness.org/en/campaigns/environmental-activists/defending-tomorrow/), I used these questions to guide my exploration into the data and the production of the final visualizations. Since the dataset was so large and spanned over multiple countries, I chose to focus on Colombia. Colombia has experienced an increase in violent attacks against environmental defenders as tensions rise between the introduction of environmental movements and policy and the need to extract resources. In 2019 Colombia had experienced the highest rate of environmental defender deaths that were able to be recorded by Global Witness compared to every other year and country. 
+
+Some limitations of the dataset and the visualizations are due to the nature of the dataset. Crimes are often underreported, misreported, or unreported all together, making it difficult to make any conclusions based on the data and visualizations alone. In places that experience high rates of oppresion against minority groups by police and military agencies and face corruption within these organizations, that makes getting accurate data and truly representative data even more difficult, both due to the data being obscured by these factors and in the protection of the identities of the victims and their families. Global Witness has vetted all information in the data set and only included cases that could be definitively proven. Even with their efforts, more information on victims themselves and the land industries/sectors that were the driving force behind their deaths is not available in detail, or much of that data is missing
+
+I chose to do a text based graph as my first plot to introduce the viewer/myself to the victims. I felt that this was an important and necessary step when working with data covering a very sensitive subject matter, and in dealing with data involving people. Making sure that there was an awareness of the victims life and existence outside of this project and in honor of their sacrifices in protecting the environment was something that needed to be introduced first. I chose to do a sankey diagram as the second visualization to see where the connections lay between the demographics of the victims, and the different organizations responsible for their deaths, and what demographics and organizations had no connections between eachother. For my final plot, I chose a bar graph to put a numeric value to the connections made in the sankey diagram. 
+
+I kept text minimal and gave the basic information necessary to understand the context for all three plots. For the sankey diagram, I had to get creative with the axis labels and the stratum labels since it's very difficult to adjust the stratum boxes in a way that makes the text easy to read. I colored the labels in the original plot white and individually added text annotations for each axis and stratum box to get custom positions and sizes for all labels.
+
+The `theme()` function was used to modify the text font, size, face, and position for all plots as well as modifying plot margins where necessary and removing gridlines and axis ticks and all plots except the bar plot. I felt that the gridlines and ticks were only necessary on the bar plot since it was the only plot displaying counts of the data and it would help to better orient the viewer to where the plots fall in relation to the flipped y-axis. I also chose to do a coordinate flip on both the sankey and bar plots to make the long names of the axis labels more readable.
+
+For the sankey diagram and bar plot, I created two custom color palettes using [coolors](https://coolors.co/) with a neutral but enaging palette. Since the the visualizations are on sensitive subject matters, I wanted to be respectful in my choice of color in not chosing something bright or distracting and went for a neutral, earth-toned palette. I chose these earth tones since the data is related to the land and the environment, and since the victims had dedicated their lives to protecting the environment it seemed fitting. I chose not to use colors other than black in the text based graph to keep the plot simple. I also included dandelion icons next to each of the victims name
+
+I used the Cormorant Garamond and Proza Libre fonts for all plots based on the suggestion to pair these fonts together from [fontpair](https://www.fontpair.co/). For accessability, I included alt-text to each of the plots produced.
+
+For the infographic, I wanted to keep the same plot hierarchy that i produced through code to guide the viewers through the same experience/questions. I included text boxes to provide more background on the data including the decision to focus on Colombia in 2019, as well as the continued oppression against minority groups as climate change worsens overtime. I also used the text boxes to provide more information on stand-out results from the bar plot.
+
+
+
+# Load in Data and Packages
+
+```{r, message=FALSE, warning=FALSE}
+#load libraries
+library(tidyverse)
+library(janitor)
+library(highcharter)
+library(ggalluvial)
+library(viridis)
+library(fontawesome)
+library(stringr)
+library(showtext)
+library(ggimage)
+data <- read_csv(here::here("data", "global_witness_led_09-10-23.csv"))
+```
+
+# Import Fonts
+
+```{r}
+font_add_google(name = "Cormorant Garamond", family = "cormorant")
+font_add_google(name = "Proza Libre", family = "proza")
+showtext_auto()
+showtext_opts(dpi=300) #adjust show text outputs to show in ggsave output
+```
+
+# Data Wrangling
+
+```{r}
+#Cleaning and wrangling
+
+clean_data <- data %>%
+  mutate(incident_date = ymd(date)) %>%  #turn date columnn into datetime object
+  mutate(year = year(incident_date)) %>%  #create year column from date column
+  mutate(month = month(incident_date)) %>% #create month column from date column
+  filter(country == "Colombia") %>% #filter for Colombia
+  filter(year == 2019) #filter for the year 2019
+  clean_data <-clean_data[ -c(1,9:11) ] #remove id, continent, country, and country numeric column
+
+clean_data[4][is.na(clean_data[4])] <- 0 #turn NAs in age column to 0
+clean_data[is.na(clean_data)] <- "Unspecified" #turn NAs in all other columns to "Unknown"
+
+clean_data2 <- clean_data  %>%
+  group_by(number_of_victims) %>% #group data by victim count
+  mutate(y_pos = rank(desc(name))) %>% #add new column to add points to be used in y axis based on victim name
+  arrange(desc(name)) #reorder victim name column by decending roder
+
+clean_data2[c(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64), "number_of_victims"] <-2 #change victim count of 1 to 2 for every other row based on index position
+
+
+clean_data2 <- transform(clean_data2, number_of_victims = as.factor(number_of_victims)) #turn number_of_victims column into factor
+```
+
+# Color Palette
+
+```{r}
+# create two custom color palettes
+palette4 <- c(
+                 "#1E2019",
+                "#B48291",
+                "#587B7F",
+                "#8DAB7F",
+               "#CFEE9E")
+palette5 <- c(
+                 "#1E2019",
+                "#394032",
+                "#898952",
+                "#313D5A",
+                "#587B7F",
+                "#8DAB7F",
+               "#CFEE9E")
+```
+
+```{r}
+#load in plant icon image
+plant_img = c(here::here("images", "noun-dandelion-1590390.png"))
+```
+
+```{r}
+#create custom titles for sankey diagram
+title <- "Links between Demographic Information of Enviornmental Defenders and the Perpetrators of their Deaths"
+subtitle <- "Location: Colombia, Year: 2019"
+caption <- "Data Source: Global Witness"
+```
+
+# Text Based Plot
+
+```{r}
+text_plot <- ggplot(clean_data2) +
+  ggtext::geom_textbox(aes(x = number_of_victims, #set x as victim counts
+                           y = y_pos, # set y as y position values
+                           label = gsub(" \\(.*?\\)", "", name)), #label points by victim name from name column
+                       stat= "identity", #adjust text stats based on column identity
+                       position = "identity", # adjust text position based on column identity
+                       hjust = 0.5, #horizontal justification
+                       halign = 0.5, #horizontal alignment
+                       width = unit(10, "lines"), #width between x axis points
+                       size = 4.5, #text font size
+                       fill = NA, #remove fill
+                       box.colour = NA, #remove textbox color
+                       colour = "black", #change text color 
+                       family = "cormorant") + # change font family
+  theme_void()+ #remove plot elements
+  theme(plot.caption =element_text(family = "proza", size = 15, face = "italic"), #adjust caption
+        plot.title = element_text(family = "cormorant", size = 30, face = "bold", hjust = 0.44)) + #adjust title
+  geom_image(data = clean_data2,
+             aes(x = number_of_victims, y = y_pos, image = plant_img), size = 0.03, nudge_x = -0.23) + #add in plant image and adjust x axis position and size of icon
+  labs(caption = "Data Source: Global Witness and Tania Magdieva (Noun Project)",
+       title = "Who are the Victims of Environmental Protection?",
+       alt = "a text graph displaying the names of environmental defenders killed in Columbia in 2019") # add in title, caption, and subtitle
+
+```
+
+```{r}
+#| eval: true
+#| echo: false
+#| fig-align: "center"
+#| out-width: "100%"
+knitr::include_graphics("outputs/text.png")
+```
+
+# Sankey Diagram
+
+```{r}
+sankey <- ggplot(data = clean_data,
+       aes(axis1 = perpetrator_type, axis2 = person_characteristics)) + #plot by perpetrator type, leading to victim characteristics
+  geom_alluvium(aes(fill = person_characteristics), #fill links by person characteristics
+                curve_type = "quintic", width = .7) + #adjust curve type and curve size
+  geom_stratum(width = .4) + # adjust width of stratum/axis
+  geom_text(stat = "stratum", #adjust lets in stratum
+            aes(label = after_stat(stratum)), size = 1.7, check_overlap = TRUE, color = "white") + #adjust labels on stratum
+  scale_x_discrete(limits = c("perpetrator_type", "person_characteristics"), #set stratum limits
+                   expand = c(.20, .10)) + #set stratm boundaries
+  labs(title = title, # add plot title
+       subtitle = subtitle, # add plot subtitle
+       caption = caption,
+       alt = "A sankey diagram displaying the links between environmental defenders and the perpetrators of their deaths") + #add plot caption
+  theme_minimal() + #minimal theme 
+  theme(legend.position = "none", axis.text.x = element_text(size = 5),axis.text.y = element_blank(), axis.ticks.y = element_blank(), #remove legend position and ajust axis text size, remove axis ticks
+        plot.title=element_text(family = "cormorant",size=28,hjust = 0.1), #change text in title
+        plot.caption =element_text(family = "proza", size = 15, face = "italic"), # change text in caption
+        plot.subtitle = element_text(family = "proza", size = 19, hjust = 0.1)) + #change text in subtitle
+  coord_flip() + #flip coordinate position
+  scale_fill_manual(values = palette4) #fill by custom color palette
+
+```
+
+```{r}
+#creating graph label elements for sankey diagram
+sankey_final <- sankey + annotate(geom = "text",
+                  x = 2,
+                  y = 12,
+                  label = "Small Scale Farmer",
+                  size = 8) + #create text annotations
+  annotate(geom = "text",
+           x = 2.5,
+           y = 22,
+           label = "Relatives of Targeted Person",
+           size = 5) + # create text annotations
+  annotate(geom = "rect",
+    xmin = 2.3, xmax = 2.7,
+    ymin = 12, ymax = 28,
+    alpha = 0) + #create rectangle object to hold text annotations
+  annotate(geom = "text",
+           x = 2.5,
+           y = 31,
+           label = "Other",
+           size = 5) + #create text annotations
+   annotate(geom = "rect",
+    xmin = 2.3, xmax = 2.7,
+    ymin = 29, ymax = 38,
+    alpha = 0) + # create rectangle object to hold annotations
+   annotate(geom = "text",
+           x = 2,
+           y = 44,
+           label = "Indigenous Peoples",
+           size = 8) + #create text annotations
+   annotate(geom = "text",
+           x = 2.5,
+           y = 62,
+           label = "Afrodescendant",
+           size = 5) + # create text annotations
+   annotate(geom = "rect",
+    xmin = 2.3, xmax = 2.7,
+    ymin = 45, ymax = 60,
+    alpha = 0) + #create rectangle object to hold annotations
+  annotate(geom = "text",
+           x = 1,
+           y = 6.6,
+           label = "Unspecified",
+           size = 8) + #create text annotations
+  annotate(geom = "text",
+           x = 0.5,
+           y = 15,
+           label = "Private Security Guards",
+           size = 5) + #create text annotations
+   annotate(geom = "rect",
+    xmin = 0.3, xmax = 0.7,
+    ymin = 6.6, ymax = 25,
+    alpha = 0) + #create text annotations
+  annotate(geom = "text",
+           x = 1,
+           y = 25.1,
+           label = "Private Military Actors",
+           size = 8) + #create text annotations
+  annotate(geom = "text",
+           x = 0.5,
+           y = 32,
+           label = "Police",
+           size = 5) + #create text annotations
+  annotate(geom = "rect",
+    xmin = 0.3, xmax = 0.7,
+    ymin = 35, ymax = 45,
+    alpha = 0) + #create rectangle onnject to hold annotations
+  annotate(geom = "text",
+           x = 0.5,
+           y = 42,
+           label = "Organized Crime/Mafias",
+           size = 5) + # create text annotation
+  annotate(geom = "text",
+           x = 1,
+           y = 52.5,
+           label = "Hitmen",
+           size = 8) + #create text annotation
+    annotate(geom = "text",
+           x = 0.5,
+           y = 63,
+           label = "Armed Forces",
+           size = 5) + #create text annotation
+  annotate(geom = "rect",
+    xmin = 1, xmax = 0.3,
+    ymin = -1, ymax = 0,
+    alpha = 0) + #create rectangle object to hold text annotation
+  annotate(geom = "text",
+           x = 1.03,
+           y = -5,
+           label = "Perpetrator Type",
+           size = 5)+ # create text annotation
+   annotate(geom = "rect",
+    xmin = 2, xmax = 2.3,
+    ymin = -2, ymax = 0,
+    alpha = 0) + #create rectangle onject to hold text annotation
+  annotate(geom = "text",
+           x = 2.03,
+           y = -4.7,
+           label = "Person Characteristics",
+           size = 4)+ # create text annotation
+  theme(legend.position = "none") # remove legend from plot
+    
+  
+```
+
+```{r}
+#| eval: true
+#| echo: false
+#| fig-align: "center"
+#| out-width: "100%"
+knitr::include_graphics("outputs/sanky.png")
+```
+
+# Bar Plot
+
+```{r}
+reorder_clean <- clean_data %>% 
+ mutate(person_characteristics = as.factor(person_characteristics)) %>% # reorder facor level of person_characteristic column
+  mutate(person_characteristics = fct_relevel(person_characteristics)) #reorder factor level of person_characteristic column
+```
+
+```{r}
+bar_plot <- reorder_clean %>% 
+  ggplot(aes(person_characteristics, fill = perpetrator_type)) + #plot person characteristics filed by perpetrator type
+  coord_flip() + #flip axis
+  geom_bar(col = "black") + labs (x = "Victim Demographics") + #add black borders, stack bars next to eachother, change legend title
+  theme_minimal() + #remove some background elements
+  theme(plot.title=element_text(family = "cormorant",size=30,hjust = -0.004,
+                              margin = margin(t = 0, r = 1, b = 0, l = 1, "cm")), #adjust text
+        panel.grid.major = element_line(color = "black"), # color major gridlines
+        panel.grid.minor = element_line(color = "black"), #color minor gridlines
+        plot.caption =element_text(family = "proza", size = 15, face = "italic"), #adjust caption text
+        plot.subtitle = element_text(family = "proza", size = 20), #adjust subtitile text
+        legend.text = element_text(family = "cormorant", size = 20), #adjust legend text
+        axis.title = element_text(family = "cormorant", size = 25), #adjust axis title
+        axis.text = element_text(family = "cormorant", size = 20), #adjust axis text
+        legend.title = element_text(family = "cormorant", size = 25, face = "bold")) + #adjust legend title
+  labs(fill = "Perpetrator Type", #add legend title
+       title = "Counts of Environmental Defeders by the Perpetrators of their Deaths", #add plot tile
+       subtitle = "Location: Colombia, Year: 2019", #add plot subtitle
+       caption = "Data Source: Global Witness", #add plot caption
+       alt = "A dodged bar chart displaying counts of environmental defenders by the perpetrators of their deaths")+ # add alt text 
+  scale_fill_manual(values = palette5) # add custom color palette
+
+
+```
+
+```{r}
+#| eval: true
+#| echo: false
+#| fig-align: "center"
+#| out-width: "100%"
+knitr::include_graphics("outputs/bar.png")
+```
+
+# Save outputs
+
+```{r}
+# ggsave(filename = "text.png", 
+#        plot = text_plot, 
+#        device = "png",
+#        type = "cairo",
+#        path = here::here("outputs"), 
+#        width = 17, height = 17)
+```
+
+```{r}
+ # ggsave(filename = "sanky.png", 
+ #        plot = sankey_final, 
+ #        device = "png",
+ #        type = "cairo",
+ #        path = here::here("outputs"), 
+ #        width = 17, height = 17)
+```
+
+```{r}
+ # ggsave(filename = "bar.png", 
+ #        plot = bar_plot, 
+ #        device = "png",
+ #        type = "cairo",
+ #        path = here::here("outputs"), 
+ #        width = 17, height = 17)
+```
+
+# Display Infographic
+
+```{r}
+#| eval: true
+#| echo: false
+#| fig-align: "center"
+#| out-width: "100%"
+knitr::include_graphics("images/infographic.png")
+```
